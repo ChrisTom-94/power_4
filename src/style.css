@@ -8,4 +8,13 @@ body{
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#not-supported{
+  padding: 3rem;
+  background-color: rgb(200, 30, 30);
+  color: white;
 }
