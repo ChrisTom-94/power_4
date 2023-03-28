@@ -43,6 +43,7 @@ if (support) {
             requestAnimationFrame(animate)
             renderer.render(scene, camera)
             controls.update()
+            board.update()
         }
         animate()
     })();
