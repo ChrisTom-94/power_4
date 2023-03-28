@@ -1,5 +1,5 @@
 import './style.css';
-import { Scene, WebGLRenderer, PerspectiveCamera, AmbientLight } from 'three';
+import { Scene, WebGLRenderer, PerspectiveCamera, AmbientLight, DirectionalLight } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import WebGL from "three/examples/jsm/capabilities/WebGL.js"
 import Board from './classes/Board';
@@ -28,11 +28,14 @@ if (support) {
         document.body.appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
-        // disable pan
         controls.enablePan = false;
 
-        const light = new AmbientLight(0x404040); // soft white light
-        scene.add(light);
+        const ambient = new AmbientLight(0x404040); // soft white light
+        scene.add(ambient);
+
+        const directionalLight = new DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(0, 15, 5);
+        scene.add(directionalLight);
 
         const board = new Board(scene);
 
