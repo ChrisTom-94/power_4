@@ -1,23 +1,40 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { Piece, Player } from '../types';
-import { Color, Vector3, Scene, Mesh, MeshToonMaterial } from "three";
+import { Color, Vector3, Scene, Mesh, MeshToonMaterial, InstancedMesh, Object3D, BufferGeometry, InstancedBufferAttribute, DynamicDrawUsage } from "three";
+import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-const x_start = -1.9;
-const x_gap = 0.7;
-const y_start = -1.1;
-const y_gap = 0.7;
+const X_START = -2.25;
+const GAP = 0.7;
+const Y_START = -1.1;
+const NB_COLUMNS = 7;
+const NB_ROWS = 6;
+const CELLS = NB_COLUMNS * NB_ROWS;
+
+const COLORS = [0xff0000, 0xffff00];
+
+type Player = {
+    color: Color;
+}
+
+type Piece = {
+    case: [number, number];
+    color: Color;
+}
 
 export default class Board {
     players: [Player, Player];
     current_player = 0;
     pieces: Piece[];
 
-    piece: Mesh = new Mesh();
+    piece: Object3D = new Object3D();
+    instanced_mesh: InstancedMesh | null;
     piece_destination: Vector3 = new Vector3();
+    current_piece = 0;
+    is_inserting = false;
 
     constructor(public scene: Scene) {
         this.players = [{ color: new Color(0xff0000) }, { color: new Color(0xffff00) }]
         this.pieces = [];
+        this.instanced_mesh = null;
 
         const loader = new GLTFLoader();
         this.loadBoard(loader);
@@ -25,14 +42,6 @@ export default class Board {
 
         window.addEventListener('keydown', this.onKeydown.bind(this));
     }
-
-    create_piece() {
-        const piece = {
-            color: this.players[this.current_player].color,
-            case: [0, 6]
-        }
-    }
-
 
     loadBoard(loader: GLTFLoader) {
         loader.load('assets/models/board.glb', (object) => {
@@ -51,36 +60,49 @@ export default class Board {
     }
 
     loadPiece(loader: GLTFLoader) {
-        loader.load('assets/models/piece.glb', (object) => {
-            const model = object.scene.getObjectByName('piece') as Mesh;
+        loader.load('assets/models/piece.glb', (glb) => {
+            const model = glb.scene.getObjectByName('piece') as Mesh;
 
-            model.rotateOnWorldAxis(new Vector3(0, 1, 0), Math.PI / 2);
-
-            model.position.z = 0;
-            model.position.x = x_start + (x_gap * 0);
-            model.position.y = y_start + (y_gap * 6);
-
-            this.piece = model.clone();
-
-            this.piece.traverse((child) => {
-                if (child instanceof Mesh) {
-                    const material = child.material as MeshToonMaterial;
-                    material.side = 2;
-                    material.color = this.players[this.current_player].color;
-                }
+            const geometries : BufferGeometry[] = [];
+            model.traverse((child) => {
+                if (!(child instanceof Mesh)) return;
+                const geometry = child.geometry as BufferGeometry;
+                geometries.push(geometry);
             });
 
-            this.piece.userData = {
-                case: [0, 6]
+            const mergedGeometry = mergeBufferGeometries(geometries);
+
+            this.instanced_mesh = new InstancedMesh(mergedGeometry, new MeshToonMaterial(), CELLS);
+
+            this.piece.scale.set(0.5, 0.5, 0.5);
+            this.piece.rotation.x = Math.PI / 2;
+            this.piece.position.z = 0;
+            this.piece.position.x = X_START + (GAP * 0);
+            this.piece.position.y = Y_START + (GAP * NB_ROWS);
+            this.piece.userData.case = [0, NB_ROWS];
+            this.piece.updateMatrix();
+
+            const color = new Color();
+
+            for(let i = 0; i < CELLS; i++){
+                color.setHex(COLORS[i % 2]);
+                this.instanced_mesh.setColorAt(i, color);
+                this.instanced_mesh.setMatrixAt(i, this.piece.matrix);
             }
 
-            this.piece_destination = this.piece.position.clone();
+            this.instanced_mesh.instanceMatrix.needsUpdate = true;
+            this.instanced_mesh.instanceMatrix.setUsage( DynamicDrawUsage );
 
-            this.scene.add(this.piece);
+            this.instanced_mesh.count = 1;
+
+            this.scene.add(this.instanced_mesh);
+
         });
     }
 
     onKeydown(event: KeyboardEvent) {
+
+        if(this.is_inserting || !this.piece) return;
 
         if (event.key == 'ArrowDown') {
             this.insertPiece();
@@ -92,38 +114,66 @@ export default class Board {
 
         this.piece.userData.case[0] = Math.max(0, Math.min(6, this.piece.userData.case[0]));
 
-        this.movePiece(this.piece.userData.case[0]);
+        this.movePiece();
     }
 
-    movePiece(x: number) {
-        this.piece.position.x = x_start + (x_gap * x);
-        this.piece_destination = this.piece.position.clone();
+    movePiece() {
+        if (!this.piece || !this.instanced_mesh) return;
+
+        const [column] = this.piece.userData.case;
+        this.piece.position.x = X_START + (GAP * column);
+
+        this.piece.updateMatrix();
+        this.instanced_mesh?.setMatrixAt(this.current_piece, this.piece.matrix);
+        this.instanced_mesh.instanceMatrix.needsUpdate = true;
     }
 
     insertPiece() {
+        if (!this.piece) return;
 
-        let [column] = this.piece.userData.case;
+        const [column] = this.piece.userData.case;
+        const same_column = this.pieces.filter(({case:[other_column]}) => other_column === column);
+        const dest_column = same_column.length;
 
-        let dest_column = this.pieces.reduce((acc, { case: [other_column, otherrow] }) =>
-            (column === other_column) ? acc : Math.max(acc, otherrow), 0);
-
-        let dest_position = new Vector3(this.piece.position.x, y_start + (y_gap * dest_column), 0);
-
+        const dest_position = new Vector3(this.piece.position.x, Y_START + (GAP * dest_column), 0);
         this.piece_destination = dest_position;
 
-        this.piece.userData.case[1] = column;
+        this.pieces.push({case: this.piece.userData.case, color: this.players[this.current_player].color});
 
-        this.pieces.push({
-            color: this.players[this.current_player].color,
-            case: this.piece.userData.case
-        });
+        this.is_inserting = true;
+    }
+
+    switch_player(){
+
+        if(!this.instanced_mesh) return;
 
         this.current_player = (this.current_player + 1) % 2;
+
+        this.instanced_mesh.count++;
+        this.current_piece++;
+
+        this.piece.position.x = X_START + (GAP * 0);
+        this.piece.position.y = Y_START + (GAP * NB_ROWS);
+        this.piece.userData.case = [0, NB_ROWS];
+
+        this.piece.updateMatrix();
+        this.instanced_mesh.setMatrixAt(this.current_piece, this.piece.matrix);
+        this.instanced_mesh.instanceMatrix.needsUpdate = true;
+
     }
 
     update() {
-        if(this.piece.position.distanceTo(this.piece_destination) > 0.01){
-            this.piece.position.lerp(this.piece_destination, 0.05);
-        }
+
+        if(!this.is_inserting || !this.instanced_mesh) return;
+
+        this.piece.position.lerp(this.piece_destination, 0.05);
+        this.piece.updateMatrix();
+        this.instanced_mesh.setMatrixAt(this.current_piece, this.piece.matrix);
+        this.instanced_mesh.instanceMatrix.needsUpdate = true;
+
+        if (this.piece.position.distanceTo(this.piece_destination) > 0.01) return;
+        
+        this.is_inserting = false;
+        this.switch_player();
     }
 }
