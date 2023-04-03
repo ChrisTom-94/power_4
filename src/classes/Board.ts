@@ -8,8 +8,14 @@ const Y_START = -1.1;
 const NB_COLUMNS = 7;
 const NB_ROWS = 6;
 const CELLS = NB_COLUMNS * NB_ROWS;
+const PIECE_SCALE = 0.65;
 
 const COLORS = [0xff0000, 0xffff00];
+
+const red_player_element = document.getElementById('red-player');
+const yellow_player_element = document.getElementById('yellow-player');
+const reset_button = document.getElementById('reset');
+const start = document.getElementById('start');
 
 type Player = {
     color: Color;
@@ -30,6 +36,8 @@ export default class Board {
     piece_destination: Vector3 = new Vector3();
     current_piece = 0;
     is_inserting = false;
+
+    is_playing = false;
 
     constructor(public scene: Scene) {
         this.players = [{ color: new Color(0xff0000) }, { color: new Color(0xffff00) }]
@@ -74,7 +82,7 @@ export default class Board {
 
             this.instanced_mesh = new InstancedMesh(mergedGeometry, new MeshToonMaterial(), CELLS);
 
-            this.piece.scale.set(0.5, 0.5, 0.5);
+            this.piece.scale.set(PIECE_SCALE, PIECE_SCALE, PIECE_SCALE);
             this.piece.rotation.x = Math.PI / 2;
             this.piece.position.z = 0;
             this.piece.position.x = X_START + (GAP * 0);
@@ -120,7 +128,8 @@ export default class Board {
     movePiece() {
         if (!this.piece || !this.instanced_mesh) return;
 
-        const [column] = this.piece.userData.case;
+        let [column] = this.piece.userData.case;
+
         this.piece.position.x = X_START + (GAP * column);
 
         this.piece.updateMatrix();
@@ -133,6 +142,9 @@ export default class Board {
 
         const [column] = this.piece.userData.case;
         const same_column = this.pieces.filter(({case:[other_column]}) => other_column === column);
+
+        if(same_column.length >= NB_ROWS) return;
+
         const dest_column = same_column.length;
 
         const dest_position = new Vector3(this.piece.position.x, Y_START + (GAP * dest_column), 0);
@@ -162,6 +174,61 @@ export default class Board {
 
     }
 
+    check_for_win(){
+        const player_color = this.players[this.current_player].color;
+        const [column, row] = this.piece.userData.case;
+
+        const same_color = this.pieces.filter(({color}) => player_color === color);
+        
+        const same_column = same_color.filter(({case:[other_column]}) => other_column === column);
+
+        let has_won = false;
+        
+        // check if there are 4 consecutive pieces in the same column
+        if(same_column.length >= 4){
+            const sorted = same_column.sort((a, b) => a.case[1] - b.case[1]);
+            for(let i = 0; i < sorted.length - 3; i++){
+                const [a, b, c, d] = sorted.slice(i, i + 4);
+                if(a.case[1] + 1 === b.case[1] && b.case[1] + 1 === c.case[1] && c.case[1] + 1 === d.case[1]){
+                    has_won = true;
+                    break;
+                }
+            }
+        }
+
+        if(has_won) return true;
+
+        const same_row = same_color.filter(({case:[, other_row]}) => other_row === row);
+        // check if there are 4 consecutive pieces in the same row
+        if(same_row.length >= 4){
+            const sorted = same_row.sort((a, b) => a.case[0] - b.case[0]);
+            for(let i = 0; i < sorted.length - 3; i++){
+                const [a, b, c, d] = sorted.slice(i, i + 4);
+                if(a.case[0] + 1 === b.case[0] && b.case[0] + 1 === c.case[0] && c.case[0] + 1 === d.case[0]){
+                    has_won = true;
+                    break;
+                }
+            }
+        }
+
+        if(has_won) return true;
+
+        const same_diagonal = same_color.filter(({case:[other_column, other_row]}) => other_column - other_row === column - row);
+        // check if there are 4 consecutive pieces in the same diagonal
+        if(same_diagonal.length >= 4){
+            const sorted = same_diagonal.sort((a, b) => a.case[0] - b.case[0]);
+            for(let i = 0; i < sorted.length - 3; i++){
+                const [a, b, c, d] = sorted.slice(i, i + 4);
+                if(a.case[0] + 1 === b.case[0] && b.case[0] + 1 === c.case[0] && c.case[0] + 1 === d.case[0]){
+                    has_won = true;
+                    break;
+                }
+            }
+        }
+
+        return has_won;
+    }
+
     update() {
 
         if(!this.is_inserting || !this.instanced_mesh) return;
@@ -174,6 +241,7 @@ export default class Board {
         if (this.piece.position.distanceTo(this.piece_destination) > 0.01) return;
         
         this.is_inserting = false;
+        console.log(this.check_for_win())
         this.switch_player();
     }
 }

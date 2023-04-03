@@ -18,3 +18,72 @@ body{
   background-color: rgb(200, 30, 30);
   color: white;
 }
+
+.ui{
+  position: fixed;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  padding: 1.5rem;
+  pointer-events: none;
+}
+
+h1{
+  text-transform: uppercase;
+}
+
+.ui__game{
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ui__players{
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.ui__player{
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ui__player span{
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 200px;
+}
+
+.ui__player--red span{
+  background-color: #bf0000;
+}
+
+.ui__player--yellow span{
+  background-color: #bfbf00;
+}
+
+.ui__credits{
+  pointer-events: all;
+}
+
+.ui__credits, .ui__credits a{
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.ui__credits a {
+  text-decoration: none;
+}
+
+.ui__credits img{
+  width: 15px;
+}
+

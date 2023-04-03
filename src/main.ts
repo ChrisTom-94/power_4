@@ -1,5 +1,11 @@
 import './style.css';
-import { Scene, WebGLRenderer, PerspectiveCamera, AmbientLight, DirectionalLight } from 'three';
+import { Scene, 
+        WebGLRenderer, 
+        PerspectiveCamera, 
+        AmbientLight, 
+        DirectionalLight, 
+        Color,
+    } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import WebGL from "three/examples/jsm/capabilities/WebGL.js"
 import Board from './classes/Board';
@@ -19,6 +25,7 @@ if (support) {
         const windowHeight = window.innerHeight;
 
         const scene = new Scene();
+        scene.background = new Color(0xf0f0f0);
 
         const camera = new PerspectiveCamera(75, windowWidth / windowHeight, 0.1, 1000);
         camera.position.z = 10;
@@ -39,13 +46,28 @@ if (support) {
 
         const board = new Board(scene);
 
+        const resize = () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+
         const animate = () => {
             requestAnimationFrame(animate)
             renderer.render(scene, camera)
             controls.update()
             board.update()
+
+            if (board.is_playing) return;
+            // automatically rotate the control 
+            controls.autoRotate = true;
+
         }
         animate()
+
+        window.addEventListener('resize', resize)
     })();
 }
 
