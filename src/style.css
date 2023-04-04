@@ -42,6 +42,23 @@ h1{
   justify-content: space-between;
 }
 
+button{
+  background: none;
+  padding: 0.25rem 1.25rem;
+  border: none;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button#start{
+  background-color: #bf0000;
+}
+
+button#reset{
+  background-color: #bfbf00;
+}
+
 .ui__players{
   display: flex;
   align-items: center;
