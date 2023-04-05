@@ -65,7 +65,8 @@ if (support) {
         const start_game = () => {
             is_playing = true;
             controls.autoRotate = false;
-            reset_camera = true;
+            controls.reset();
+            board.is_playing = true;
         }
 
         const resize = () => {
@@ -101,11 +102,7 @@ if (support) {
 
         window.addEventListener('resize', resize)
 
-        start_button.addEventListener('click', () => {
-            is_playing = true;
-            controls.autoRotate = false;
-            controls.reset();
-        });
+        start_button.addEventListener('click', start_game);
 
         reset_button.addEventListener('click', board.reset.bind(board));
     })();

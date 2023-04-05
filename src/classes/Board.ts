@@ -37,6 +37,8 @@ export default class Board {
     current_piece = 0;
     is_inserting = false;
 
+    is_playing = false;
+
     constructor(public scene: Scene, public controls: OrbitControls) {
         this.players = [{ color: new Color(0xff0000) }, { color: new Color(0xffff00) }]
         this.pieces = [];
@@ -108,7 +110,7 @@ export default class Board {
 
     onKeydown(event: KeyboardEvent) {
 
-        if(this.is_inserting || !this.piece) return;
+        if(this.is_inserting || !this.piece || !this.is_playing) return;
 
         if (event.key == 'ArrowDown') {
             this.insertPiece();
@@ -131,7 +133,7 @@ export default class Board {
     }
 
     movePiece() {
-        if (!this.piece || !this.instanced_mesh) return;
+        if (!this.piece || !this.instanced_mesh || !this.is_playing) return;
 
         let [column] = this.piece.userData.case;
 
@@ -237,7 +239,9 @@ export default class Board {
 
     reset(){
         this.pieces = [];
+        players_elements[this.current_player].classList.remove('current');
         this.current_player = 0;
+        players_elements[this.current_player].classList.add('current');
         this.current_piece = 0;
         this.is_inserting = false;
         this.piece_destination.set(0, 0, 0);
