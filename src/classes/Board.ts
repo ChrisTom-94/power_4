@@ -1,6 +1,7 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { Color, Vector3, Scene, Mesh, MeshToonMaterial, InstancedMesh, Object3D, BufferGeometry, InstancedBufferAttribute, DynamicDrawUsage } from "three";
+import { Color, Vector3, Scene, Mesh, MeshToonMaterial, InstancedMesh, Object3D, BufferGeometry, DynamicDrawUsage } from "three";
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const X_START = -2.25;
 const GAP = 0.7;
@@ -12,11 +13,6 @@ const PIECE_SCALE = 0.65;
 
 const COLORS = [0xff0000, 0xffff00];
 
-const red_player_element = document.getElementById('red-player');
-const yellow_player_element = document.getElementById('yellow-player');
-const reset_button = document.getElementById('reset');
-const start = document.getElementById('start');
-
 type Player = {
     color: Color;
 }
@@ -25,6 +21,10 @@ type Piece = {
     case: [number, number];
     color: Color;
 }
+
+const red_player = document.getElementById('red-player') as HTMLDivElement;
+const yellow_player = document.getElementById('yellow-player') as HTMLDivElement;
+const players_elements = [red_player, yellow_player];
 
 export default class Board {
     players: [Player, Player];
@@ -37,9 +37,7 @@ export default class Board {
     current_piece = 0;
     is_inserting = false;
 
-    is_playing = false;
-
-    constructor(public scene: Scene) {
+    constructor(public scene: Scene, public controls: OrbitControls) {
         this.players = [{ color: new Color(0xff0000) }, { color: new Color(0xffff00) }]
         this.pieces = [];
         this.instanced_mesh = null;
@@ -117,8 +115,15 @@ export default class Board {
             return;
         }
 
-        if (event.key == 'ArrowLeft') this.piece.userData.case[0] -= 1;
-        if (event.key == 'ArrowRight') this.piece.userData.case[0] += 1;
+        let controls_rotation = this.controls.getAzimuthalAngle();
+
+        if (controls_rotation > Math.PI / 2 && controls_rotation < 3 * Math.PI / 2) {
+            if (event.key == 'ArrowLeft') this.piece.userData.case[0] += 1;
+            if (event.key == 'ArrowRight') this.piece.userData.case[0] -= 1;
+        } else {
+            if (event.key == 'ArrowLeft') this.piece.userData.case[0] -= 1;
+            if (event.key == 'ArrowRight') this.piece.userData.case[0] += 1;
+        }
 
         this.piece.userData.case[0] = Math.max(0, Math.min(6, this.piece.userData.case[0]));
 
@@ -159,7 +164,9 @@ export default class Board {
 
         if(!this.instanced_mesh) return;
 
+        players_elements[this.current_player].classList.remove('current');
         this.current_player = (this.current_player + 1) % 2;
+        players_elements[this.current_player].classList.add('current');
 
         this.instanced_mesh.count++;
         this.current_piece++;
@@ -171,7 +178,6 @@ export default class Board {
         this.piece.updateMatrix();
         this.instanced_mesh.setMatrixAt(this.current_piece, this.piece.matrix);
         this.instanced_mesh.instanceMatrix.needsUpdate = true;
-
     }
 
     check_for_win(){
@@ -228,6 +234,25 @@ export default class Board {
 
         return has_won;
     }
+
+    reset(){
+        this.pieces = [];
+        this.current_player = 0;
+        this.current_piece = 0;
+        this.is_inserting = false;
+        this.piece_destination.set(0, 0, 0);
+        this.piece.position.x = X_START + (GAP * 0);
+        this.piece.position.y = Y_START + (GAP * NB_ROWS);
+        this.piece.userData.case = [0, NB_ROWS];
+
+        this.piece.updateMatrix();
+
+        if (!this.instanced_mesh) return 
+        this.instanced_mesh.count = 1;
+        this.instanced_mesh.setMatrixAt(this.current_piece, this.piece.matrix);
+        this.instanced_mesh.instanceMatrix.needsUpdate = true;
+    }
+
 
     update() {
 
