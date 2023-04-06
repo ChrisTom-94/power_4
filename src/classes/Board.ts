@@ -26,7 +26,7 @@ const red_player = document.getElementById('red-player') as HTMLDivElement;
 const yellow_player = document.getElementById('yellow-player') as HTMLDivElement;
 const players_elements = [red_player, yellow_player];
 
-export default class Board {
+export default class Board{
     players: [Player, Player];
     current_player = 0;
     pieces: Piece[];
@@ -152,12 +152,13 @@ export default class Board {
 
         if(same_column.length >= NB_ROWS) return;
 
-        const dest_column = same_column.length;
+        const dest_row = same_column.length;
 
-        const dest_position = new Vector3(this.piece.position.x, Y_START + (GAP * dest_column), 0);
+        const dest_position = new Vector3(this.piece.position.x, Y_START + (GAP * dest_row), 0);
         this.piece_destination = dest_position;
 
-        this.pieces.push({case: this.piece.userData.case, color: this.players[this.current_player].color});
+        this.piece.userData.case = [column, dest_row];
+        this.pieces.push({case: [column, dest_row], color: this.players[this.current_player].color});
 
         this.is_inserting = true;
     }
@@ -192,45 +193,41 @@ export default class Board {
 
         let has_won = false;
         
-        // check if there are 4 consecutive pieces in the same column
         if(same_column.length >= 4){
-            const sorted = same_column.sort((a, b) => a.case[1] - b.case[1]);
+            const sorted = same_column.sort((a, b) => a.case[1] - b.case[1]).map(({case:[, row]}) => row);
             for(let i = 0; i < sorted.length - 3; i++){
-                const [a, b, c, d] = sorted.slice(i, i + 4);
-                if(a.case[1] + 1 === b.case[1] && b.case[1] + 1 === c.case[1] && c.case[1] + 1 === d.case[1]){
-                    has_won = true;
-                    break;
-                }
+                const sliced = sorted.slice(i, i + 4);
+                if(sliced[3] - sliced[0] !== 3) continue;
+                has_won = true;
+                break;
             }
         }
 
-        if(has_won) return true;
+        if(has_won) return has_won;
 
         const same_row = same_color.filter(({case:[, other_row]}) => other_row === row);
-        // check if there are 4 consecutive pieces in the same row
+
         if(same_row.length >= 4){
-            const sorted = same_row.sort((a, b) => a.case[0] - b.case[0]);
+            const sorted = same_row.sort((a, b) => a.case[0] - b.case[0]).map(({case:[column]}) => column);
             for(let i = 0; i < sorted.length - 3; i++){
-                const [a, b, c, d] = sorted.slice(i, i + 4);
-                if(a.case[0] + 1 === b.case[0] && b.case[0] + 1 === c.case[0] && c.case[0] + 1 === d.case[0]){
-                    has_won = true;
-                    break;
-                }
+                const sliced = sorted.slice(i, i + 4);
+                if(sliced[3] - sliced[0] !== 3) continue;
+                has_won = true;
+                break;
             }
         }
 
-        if(has_won) return true;
+        if(has_won) return has_won;
 
-        const same_diagonal = same_color.filter(({case:[other_column, other_row]}) => other_column - other_row === column - row);
-        // check if there are 4 consecutive pieces in the same diagonal
+        const same_diagonal = same_color.filter(({case:[other_column, other_row]}) => Math.abs(other_column - column) === Math.abs(other_row - row));
+
         if(same_diagonal.length >= 4){
-            const sorted = same_diagonal.sort((a, b) => a.case[0] - b.case[0]);
+            const sorted = same_diagonal.sort((a, b) => a.case[0] - b.case[0])
             for(let i = 0; i < sorted.length - 3; i++){
-                const [a, b, c, d] = sorted.slice(i, i + 4);
-                if(a.case[0] + 1 === b.case[0] && b.case[0] + 1 === c.case[0] && c.case[0] + 1 === d.case[0]){
-                    has_won = true;
-                    break;
-                }
+                const sliced = sorted.slice(i, i + 4);
+                if(!(Math.abs(sliced[3].case[0] - sliced[0].case[0]) === 3 && Math.abs(sliced[3].case[1] - sliced[0].case[1]) === 3)) continue;
+                has_won = true;
+                break;
             }
         }
 
@@ -270,7 +267,10 @@ export default class Board {
         if (this.piece.position.distanceTo(this.piece_destination) > 0.01) return;
         
         this.is_inserting = false;
-        console.log(this.check_for_win())
+        if(this.check_for_win()){
+            dispatchEvent(new CustomEvent('win', {detail: this.players[this.current_player].color.getHex()}));
+            return;
+        }
         this.switch_player();
     }
 }

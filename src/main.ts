@@ -15,6 +15,8 @@ import Board from './classes/Board';
 let support = true;
 let not_supported = document.getElementById('not-supported');
 let ui = document.getElementById('ui');
+let win_windows = document.getElementById('win-windows');
+let winner = document.getElementById('winner');
 
 // check if the browser supports webgl
 if (!WebGL.isWebGLAvailable()) {
@@ -77,6 +79,15 @@ if (support) {
             camera.updateProjectionMatrix();
         }
 
+        const on_win = (e: CustomEvent) => {
+            is_playing = false;
+            controls.autoRotate = true;
+            win_windows && (win_windows.style.display = 'flex');
+            winner && (winner.innerText = e.detail === "#FF0000" ? "Red" : "Yellow");
+            win_windows?.style.setProperty('--winner', e.detail);
+            
+        }
+
         const animate = () => {
             requestAnimationFrame(animate)
             renderer.render(scene, camera)
@@ -100,11 +111,13 @@ if (support) {
         }
         animate()
 
-        window.addEventListener('resize', resize)
-
         start_button.addEventListener('click', start_game);
-
         reset_button.addEventListener('click', board.reset.bind(board));
+        window.addEventListener('resize', resize);
+        window.addEventListener('win', (e) => on_win(e as CustomEvent));
+
+
+
     })();
 }
 

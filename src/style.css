@@ -126,3 +126,21 @@ button#reset{
   width: 15px;
 }
 
+.win{
+  position: fixed;
+  z-index: 3;
+  inset: 0;
+  max-width: 25vw;
+  height: 30vh;
+  margin: auto;
+  background-color: var(--winner, white);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: bolder;
+  font-size: 2.5rem;
+  border-radius: 15px;
+  box-shadow: 0 0 70px 5px var(--winner, #000000);
+}
+

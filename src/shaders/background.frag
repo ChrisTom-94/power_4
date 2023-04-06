@@ -1,3 +1,5 @@
+precision mediump float;
+
 void main() {
 
     vec3 color = vec3(1.0);
