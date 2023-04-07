@@ -9,7 +9,6 @@ import { Scene,
         PlaneGeometry,
         MeshStandardMaterial,
         Mesh,
-        DoubleSide
     } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import WebGL from "three/examples/jsm/capabilities/WebGL.js";
@@ -120,8 +119,7 @@ if (support) {
 
             if(!controls.enableRotate) controls.enableRotate = true;
 
-            board.update()
-            background.update()
+            board.update();
         }
         animate()
 
