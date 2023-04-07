@@ -268,7 +268,7 @@ export default class Board{
         
         this.is_inserting = false;
         if(this.check_for_win()){
-            dispatchEvent(new CustomEvent('win', {detail: this.players[this.current_player].color.getHex()}));
+            dispatchEvent(new CustomEvent('win', {detail: this.players[this.current_player].color.getHexString()}));
             return;
         }
         this.switch_player();

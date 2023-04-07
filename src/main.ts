@@ -69,6 +69,12 @@ if (support) {
             controls.autoRotate = false;
             controls.reset();
             board.is_playing = true;
+            win_windows && (win_windows.style.display = 'none');
+        }
+
+        const reset_game = () => {
+            start_game();
+            board.reset();
         }
 
         const resize = () => {
@@ -83,9 +89,8 @@ if (support) {
             is_playing = false;
             controls.autoRotate = true;
             win_windows && (win_windows.style.display = 'flex');
-            winner && (winner.innerText = e.detail === "#FF0000" ? "Red" : "Yellow");
-            win_windows?.style.setProperty('--winner', e.detail);
-            
+            winner && (winner.innerText = e.detail === "ff0000" ? "Red" : "Yellow");
+            win_windows?.style.setProperty('--winner', `#${e.detail}`);
         }
 
         const animate = () => {
@@ -112,7 +117,7 @@ if (support) {
         animate()
 
         start_button.addEventListener('click', start_game);
-        reset_button.addEventListener('click', board.reset.bind(board));
+        reset_button.addEventListener('click', reset_game);
         window.addEventListener('resize', resize);
         window.addEventListener('win', (e) => on_win(e as CustomEvent));
 
