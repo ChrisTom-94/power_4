@@ -5,11 +5,14 @@ import { Scene,
         AmbientLight, 
         DirectionalLight,
         Color, 
-        Vector3
+        Vector3,
+        PlaneGeometry,
+        MeshStandardMaterial,
+        Mesh,
+        DoubleSide
     } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import WebGL from "three/examples/jsm/capabilities/WebGL.js";
-import Background from './classes/Background';
 import Board from './classes/Board';
 
 let support = true;
@@ -61,7 +64,13 @@ if (support) {
         directional_light.position.set(0, 15, 5);
         scene.add(directional_light);
 
-        const background = new Background(scene);
+        const plane_geometry = new PlaneGeometry(100, 100, 32, 32);
+        const plane_material = new MeshStandardMaterial({color: 0x000000, wireframe: true, wireframeLinewidth: 10});
+        const plane = new Mesh(plane_geometry, plane_material);
+        plane.position.set(0, -2.3, 0);
+        plane.rotation.x = Math.PI / 2;
+        scene.add(plane);
+
         const board = new Board(scene, controls);
 
         const start_game = () => {
